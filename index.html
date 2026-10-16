@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Petualangan Bangun Datar Ajaib</title>
+    <!-- Tailwind CSS untuk responsivitas dan styling dasar -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+        
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%);
+            overflow: hidden; /* Mencegah scroll yang tidak diinginkan */
+            touch-action: none; /* Penting untuk interaksi drag di HP */
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* Animasi mengambang untuk ornamen latar */
+        @keyframes float {
+            0% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(5deg); }
+            100% { transform: translateY(0px) rotate(0deg); }
+        }
+        .floating { animation: float 4s ease-in-out infinite; }
+        .floating-delay-1 { animation: float 5s ease-in-out infinite 1s; }
+        .floating-delay-2 { animation: float 6s ease-in-out infinite 2s; }
+
+        /* Animasi pantulan saat elemen muncul */
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            70% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .pop-in { animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+        /* Animasi kilauan pada tombol */
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.7); }
+            50% { box-shadow: 0 0 20px 10px rgba(251, 191, 36, 0.4); }
+        }
+        .btn-glow { animation: pulse-glow 2s infinite; }
+
+        /* Transisi Halaman */
+        .page {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        .page.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        /* Styling objek interaktif */
+        .draggable {
+            cursor: grab;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+            transition: transform 0.2s;
+        }
+        .draggable:active {
+            cursor: grabbing;
+            filter: drop-shadow(0 8px 10px rgba(0,0,0,0.4));
+        }
+
+        /* Efek magnetik */
+        .snap-target {
+            stroke-dasharray: 8;
+            animation: dash 2s linear infinite;
+        }
+        @keyframes dash { to { stroke-dashoffset: -16; } }
+
+        /* Partikel Confetti */
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            z-index: 1000;
+        }
+
+        .btn-custom {
+            transition: all 0.2s;
+        }
+        .btn-custom:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body class="w-screen h-screen flex flex-col items-center justify-center relative">
+
+    <!-- Ornamen Latar Belakang Geometris -->
+    <div class="absolute inset-0 pointer-events-none overflow-hidden z-0">
+        <svg class="absolute top-10 left-10 w-24 h-24 text-white opacity-40 floating" viewBox="0 0 100 100"><polygon points="50,10 90,90 10,90" fill="currentColor"/></svg>
+        <svg class="absolute top-40 right-20 w-16 h-16 text-yellow-300 opacity-60 floating-delay-1" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="currentColor"/></svg>
+        <svg class="absolute bottom-20 left-1/4 w-20 h-20 text-pink-300 opacity-50 floating-delay-2" viewBox="0 0 100 100"><rect x="20" y="20" width="60" height="60" fill="currentColor"/></svg>
+        <!-- Awan -->
+        <svg class="absolute top-5 right-1/4 w-32 h-20 text-white opacity-70 floating" viewBox="0 0 200 100"><path d="M 50 60 A 30 30 0 0 1 100 30 A 40 40 0 0 1 170 60 Q 190 60 190 80 Q 190 100 170 100 L 30 100 Q 10 100 10 80 Q 10 60 50 60 Z" fill="currentColor"/></svg>
+    </div>
+
+    <!-- Kontrol Audio Global -->
+    <div class="absolute top-4 right-4 z-50 flex gap-2">
+        <button id="btn-bgm" class="bg-white p-3 rounded-full shadow-lg text-xl hover:bg-gray-100 btn-custom">🎵</button>
+        <button id="btn-sfx" class="bg-white p-3 rounded-full shadow-lg text-xl hover:bg-gray-100 btn-custom">🔊</button>
+    </div>
+
+    <!-- Tombol Home Global (Disembunyikan di Menu Utama) -->
+    <button id="btn-home" class="hidden absolute top-4 left-4 z-50 bg-white px-4 py-2 rounded-2xl shadow-lg text-lg font-bold text-blue-600 hover:bg-blue-50 border-b-4 border-blue-200 btn-custom flex items-center gap-2">
+        🏠 <span>MENU AWAL</span>
+    </button>
+
+    <div id="page-menu" class="page active flex-col items-center justify-center w-full h-full z-10 px-4">
+        <div class="pop-in text-center mb-8">
+            <h1 class="text-4xl md:text-6xl font-black text-white drop-shadow-md mb-2" style="-webkit-text-stroke: 2px #3b82f6;">PETUALANGAN</h1>
+            <h1 class="text-5xl md:text-7xl font-black text-yellow-300 drop-shadow-lg" style="-webkit-text-stroke: 2px #d97706;">BANGUN DATAR AJAIB</h1>
+        </div>
+        
+        <!-- Maskot & Ilustrasi -->
+        <div class="relative w-64 h-64 mb-8 pop-in floating flex items-center justify-center">
+            <!-- Robot Geometri Sederhana SVG -->
+            <svg viewBox="0 0 200 200" class="w-full h-full drop-shadow-xl">
+                <!-- Tubuh (Persegi) -->
+                <rect x="50" y="80" width="100" height="90" rx="10" fill="#3b82f6" />
+                <!-- Kepala (Segitiga) -->
+                <polygon points="100,10 160,75 40,75" fill="#f43f5e" />
+                <!-- Mata -->
+                <circle cx="80" cy="50" r="8" fill="white" />
+                <circle cx="120" cy="50" r="8" fill="white" />
+                <circle cx="80" cy="50" r="4" fill="black" />
+                <circle cx="120" cy="50" r="4" fill="black" />
+                <!-- Senyum -->
+                <path d="M 85 65 Q 100 75 115 65" stroke="white" stroke-width="4" fill="none" stroke-linecap="round"/>
+                <!-- Tangan & Kaki -->
+                <rect x="30" y="100" width="20" height="40" rx="5" fill="#eab308" />
+                <rect x="150" y="100" width="20" height="40" rx="5" fill="#eab308" />
+                <rect x="70" y="170" width="20" height="30" rx="5" fill="#22c55e" />
+                <rect x="110" y="170" width="20" height="30" rx="5" fill="#22c55e" />
+            </svg>
+        </div>
+
+        <div class="flex flex-col gap-4 w-full max-w-sm pop-in" style="animation-delay: 0.3s">
+            <button onclick="goToPage('page-objective')" class="btn-glow bg-green-500 hover:bg-green-400 text-white font-black text-2xl py-4 px-8 rounded-3xl border-b-8 border-green-700 shadow-xl btn-custom">
+                🚀 MULAI PETUALANGAN
+            </button>
+            <button onclick="goToPage('page-guide')" class="bg-yellow-400 hover:bg-yellow-300 text-yellow-900 font-bold text-xl py-3 px-8 rounded-3xl border-b-6 border-yellow-600 shadow-lg btn-custom">
+                📖 CARA BERMAIN
+            </button>
+            <button onclick="showInfo()" class="bg-purple-400 hover:bg-purple-300 text-white font-bold text-lg py-3 px-8 rounded-3xl border-b-6 border-purple-600 shadow-lg btn-custom">
+                ℹ️ TENTANG PEMBELAJARAN
+            </button>
+        </div>
+    </div>
+
+    <div id="page-objective" class="page flex-col items-center justify-center w-full h-full z-10 px-4 bg-white/40 backdrop-blur-sm">
+        <div class="bg-white p-8 rounded-3xl shadow-2xl max-w-2xl text-center border-4 border-blue-400 pop-in">
+            <h2 class="text-3xl font-black text-blue-600 mb-4">Hari ini kita akan menjadi<br>Penjelajah Bangun Datar! 🕵️‍♂️</h2>
+            <div class="bg-blue-50 p-6 rounded-2xl mb-6 border-2 border-blue-200">
+                <p class="text-2xl font-bold text-gray-800">
+                    "Aku dapat menggabungkan dua <span class="text-red-500">segitiga</span> menjadi bentuk baru."
+                </p>
+            </div>
+            <!-- Animasi Mini -->
+            <div class="flex justify-center items-center h-40 mb-6 relative">
+                <svg viewBox="0 0 200 100" class="w-64 h-32">
+                    <!-- Segitiga Kiri -->
+                    <polygon points="50,10 50,90 90,90" fill="#ef4444" id="anim-tri-1"/>
+                    <!-- Segitiga Kanan (Terbalik) -->
+                    <polygon points="150,10 110,10 110,90" fill="#3b82f6" id="anim-tri-2"/>
+                    <!-- Tanda Panah -->
+                    <path d="M 80 50 L 120 50" stroke="#9ca3af" stroke-width="4" stroke-dasharray="5,5" />
+                    <polygon points="120,45 130,50 120,55" fill="#9ca3af" />
+                </svg>
+            </div>
+            <button onclick="goToPage('page-game'); initGame();" class="bg-green-500 text-white font-black text-2xl py-4 px-10 rounded-3xl border-b-8 border-green-700 shadow-lg hover:bg-green-400 btn-custom w-full">
+                AYO MULAI! ✨
+            </button>
+        </div>
+    </div>
+
+    <div id="page-guide" class="page flex-col items-center justify-center w-full h-full z-10 px-4 bg-white/40 backdrop-blur-sm">
+        <div class="bg-white p-6 md:p-10 rounded-3xl shadow-2xl max-w-3xl text-center border-4 border-yellow-400 pop-in w-full">
+            <h2 class="text-3xl font-black text-yellow-600 mb-6">Cara Bermain 🎮</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 text-left">
+                <div class="bg-yellow-50 p-4 rounded-xl border border-yellow-200 flex flex-col items-center text-center">
+                    <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-2xl font-bold text-blue-600 mb-2">1</div>
+                    <svg viewBox="0 0 100 100" class="w-16 h-16 mb-2"><polygon points="20,20 20,80 80,80" fill="#f43f5e"/></svg>
+                    <p class="font-bold text-gray-700">Pilih & sentuh bangun datar.</p>
+                </div>
+                <div class="bg-yellow-50 p-4 rounded-xl border border-yellow-200 flex flex-col items-center text-center">
+                    <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-2xl font-bold text-blue-600 mb-2">2</div>
+                    <div class="text-4xl mb-2">👆🔄</div>
+                    <p class="font-bold text-gray-700">Geser atau putar hingga pas.</p>
+                </div>
+                <div class="bg-yellow-50 p-4 rounded-xl border border-yellow-200 flex flex-col items-center text-center">
+                    <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-2xl font-bold text-blue-600 mb-2">3</div>
+                    <div class="text-4xl mb-2">✅</div>
+                    <p class="font-bold text-gray-700">Dekatkan dan temukan bentuk baru!</p>
+                </div>
+            </div>
+
+            <button onclick="goToPage('page-objective')" class="bg-blue-500 text-white font-black text-xl py-4 px-10 rounded-3xl border-b-8 border-blue-700 shadow-lg hover:bg-blue-400 btn-custom w-full">
+                MENGERTI, MULAI! 👍
+            </button>
+        </div>
+    </div>
+
+    <div id="page-game" class="page flex-col items-center w-full h-full z-10 p-2 md:p-6 bg-white/20 backdrop-blur-sm">
+        
+        <!-- Header Game -->
+        <div class="w-full max-w-4xl bg-white rounded-2xl p-4 shadow-md flex justify-between items-center mb-4 mt-12 md:mt-0 border-4 border-blue-300">
+            <div>
+                <span class="text-sm font-bold text-gray-500 uppercase">Tantangan <span id="challenge-number">1</span>/10</span>
+                <h2 id="challenge-instruction" class="text-xl md:text-2xl font-black text-blue-700">Gabungkan dua segitiga menjadi satu segiempat.</h2>
+            </div>
+            <div class="text-right hidden md:block">
+                <div class="text-3xl">⭐ <span id="score-display" class="font-bold text-yellow-500">0</span></div>
+            </div>
+        </div>
+
+        <!-- Area Konten Dinamis (Drag/Pilihan Ganda) -->
+        <div id="game-workspace" class="w-full max-w-4xl flex-1 bg-white rounded-3xl shadow-xl relative overflow-hidden border-4 border-white flex flex-col">
+            
+            <!-- Tampilan Pilihan Ganda (Sembunyi by default) -->
+            <div id="mcq-area" class="hidden w-full h-full flex flex-col items-center justify-center p-6 bg-blue-50">
+                <div id="mcq-question" class="text-2xl font-bold text-center mb-8 text-gray-800"></div>
+                <div id="mcq-options" class="grid grid-cols-2 gap-4 w-full max-w-2xl">
+                    <!-- Opsi dibuat via JS -->
+                </div>
+            </div>
+
+            <!-- Tampilan Drag & Drop -->
+            <div id="drag-area" class="w-full h-full relative bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+CjxyZWN0IHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgZmlsbD0iI2Y4ZmFmYyIvPgo8Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIxLjUiIGZpbGw9IiNjYmQ1ZTEiLz4KPC9zdmc+')] touch-none">
+                <!-- Area Sasaran (Ghost Outline) -->
+                <div id="target-container" class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-50">
+                    <!-- Target SVG diinjeksi via JS -->
+                </div>
+
+                <!-- Segitiga Interaktif -->
+                <!-- SVG akan dibuat secara dinamis oleh JS agar mudah di-reset -->
+                <div id="shapes-container" class="absolute inset-0"></div>
+                
+                <!-- Feedback Petunjuk Visual -->
+                <div id="visual-feedback" class="absolute top-4 right-4 bg-yellow-100 text-yellow-800 font-bold px-4 py-2 rounded-xl shadow opacity-0 transition-opacity">
+                    💡 Petunjuk: Putar segitiga agar sisinya pas!
+                </div>
+            </div>
+
+            <!-- Panel Alat Bawah (Hanya untuk Drag Area) -->
+            <div id="tool-panel" class="bg-gray-100 p-4 border-t-2 border-gray-200 flex justify-between items-center gap-2">
+                <div class="flex gap-2">
+                    <button onclick="rotateSelected()" class="bg-blue-500 hover:bg-blue-400 text-white font-bold py-2 px-4 rounded-xl shadow btn-custom flex items-center gap-2">
+                        🔄 <span class="hidden md:inline">Putar</span>
+                    </button>
+                    <button onclick="resetShapes()" class="bg-gray-400 hover:bg-gray-300 text-white font-bold py-2 px-4 rounded-xl shadow btn-custom flex items-center gap-2">
+                        🔙 <span class="hidden md:inline">Ulang Posisi</span>
+                    </button>
+                </div>
+                <div>
+                    <button id="btn-check" onclick="checkDragAnswer()" class="bg-green-500 hover:bg-green-400 text-white font-black py-2 px-8 rounded-xl shadow-lg border-b-4 border-green-700 btn-custom animate-bounce text-xl">
+                        PERIKSA ✅
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="page-result" class="page flex-col items-center justify-center w-full h-full z-10 px-4 bg-white/40 backdrop-blur-sm">
+        <div class="bg-white p-8 md:p-12 rounded-3xl shadow-2xl max-w-2xl text-center border-4 border-yellow-400 pop-in relative overflow-hidden w-full">
+            <h1 class="text-4xl md:text-5xl font-black text-yellow-500 mb-2 drop-shadow-md">LUAR BIASA! 🎉</h1>
+            <p class="text-xl font-bold text-gray-600 mb-6">Kamu telah menjadi Penjelajah Bangun Datar!</p>
+            
+            <div class="flex justify-center gap-4 mb-6" id="star-container">
+                <!-- Bintang diinjeksi via JS -->
+            </div>
+
+            <div class="bg-blue-50 rounded-2xl p-6 mb-8 border-2 border-blue-100">
+                <p class="text-2xl font-bold text-gray-800 mb-2">Skor Kamu: <span id="final-score" class="text-blue-600">10/10</span></p>
+                <p id="final-message" class="text-lg text-gray-600">Sempurna! Kamu sangat pintar menyusun bangun datar.</p>
+            </div>
+
+            <div class="flex flex-col md:flex-row justify-center gap-4">
+                <button onclick="resetGame(); goToPage('page-menu')" class="bg-blue-500 text-white font-black text-xl py-3 px-8 rounded-2xl border-b-6 border-blue-700 shadow-lg hover:bg-blue-400 btn-custom">
+                    🏠 KEMBALI KE MENU
+                </button>
+                <button onclick="resetGame(); goToPage('page-game'); initGame();" class="bg-green-500 text-white font-black text-xl py-3 px-8 rounded-2xl border-b-6 border-green-700 shadow-lg hover:bg-green-400 btn-custom">
+                    🔄 MAIN LAGI
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Penjelasan Singkat (Popup Kustom pengganti alert) -->
+    <div id="modal-feedback" class="fixed inset-0 bg-black/50 z-[100] hidden items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl p-8 max-w-md w-full text-center shadow-2xl transform transition-transform scale-90 border-4" id="modal-content">
+            <div id="modal-icon" class="text-6xl mb-4">✨</div>
+            <h3 id="modal-title" class="text-3xl font-black mb-2 text-gray-800">Hebat!</h3>
+            <p id="modal-desc" class="text-xl font-bold text-gray-600 mb-8">Dua segitiga bergabung menjadi segiempat!</p>
+            <button onclick="closeModalAndNext()" class="bg-blue-500 w-full text-white font-black text-xl py-4 rounded-2xl border-b-6 border-blue-700 shadow-lg hover:bg-blue-400 btn-custom">
+                LANJUT ➡️
+            </button>
+        </div>
+    </div>
+
+    <!-- Info Pembelajaran Modal -->
+    <div id="modal-info" class="fixed inset-0 bg-black/50 z-[100] hidden items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl p-8 max-w-2xl w-full shadow-2xl border-4 border-purple-400 max-h-[80vh] overflow-y-auto">
+            <h3 class="text-2xl font-black mb-4 text-purple-600">Tentang Pembelajaran 📚</h3>
+            <div class="space-y-4 text-gray-700 font-semibold">
+                <p><strong>Mata Pelajaran:</strong> Matematika Kelas 1 SD</p>
+                <p><strong>Elemen:</strong> Geometri</p>
+                <p><strong>Tujuan:</strong> Murid mampu menyusun (komposisi) bangun datar sederhana dengan menggeser dua segitiga hingga menjadi satu segiempat atau bentuk lainnya.</p>
+                <p class="bg-purple-50 p-4 rounded-xl border border-purple-200">
+                    <em>Catatan Pedagogis:</em> Media ini berfokus pada eksplorasi visual dan spasial. Penggabungan bangun datar diperkenalkan murni sebagai aktivitas spasial/menyusun bentuk, bukan operasi aritmetika penjumlahan, sehingga tidak ada penggunaan simbol matematika seperti "+" dalam permainannya.
+                </p>
+            </div>
+            <button onclick="closeInfo()" class="mt-8 bg-purple-500 w-full text-white font-black text-xl py-3 rounded-2xl shadow hover:bg-purple-400 btn-custom">TUTUP</button>
+        </div>
+    </div>
+
+    <script>
+        // --- SISTEM AUDIO (Web Audio API) ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let bgmEnabled = true;
+        let sfxEnabled = true;
+        let bgmInterval = null;
+        let audioInitialized = false;
+
+        function initAudio() {
+            if (audioInitialized) return;
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            audioInitialized = true;
+        }
+
+        function playTone(freq, type, duration, vol=0.5) {
+            if (!sfxEnabled) return;
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            
+            gainNode.gain.setValueAtTime(vol, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+            
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        const Sound = {
+            click: () => playTone(600, 'sine', 0.1, 0.3),
+            drag: () => playTone(300, 'triangle', 0.1, 0.1),
+            snap: () => {
+                playTone(800, 'sine', 0.1, 0.4);
+                setTimeout(() => playTone(1200, 'sine', 0.2, 0.4), 50);
+            },
+            win: () => {
+                const notes = [440, 554, 659, 880]; // A Major arpeggio
+                notes.forEach((freq, i) => setTimeout(() => playTone(freq, 'square', 0.3, 0.3), i * 150));
+            },
+            correct: () => {
+                playTone(523.25, 'sine', 0.1, 0.4); // C5
+                setTimeout(() => playTone(659.25, 'sine', 0.2, 0.4), 100); // E5
+            },
+            wrong: () => playTone(200, 'sawtooth', 0.3, 0.3),
+            pop: () => playTone(900, 'square', 0.05, 0.2)
+        };
+
+        // BGM Sederhana (Pentatonik berulang)
+        function startBGM() {
+            if (!bgmEnabled || bgmInterval) return;
+            const notes = [261.63, 293.66, 329.63, 392.00, 440.00]; // C D E G A
+            let step = 0;
+            bgmInterval = setInterval(() => {
+                if(bgmEnabled && audioCtx.state === 'running'){
+                    const freq = notes[step % notes.length];
+                    playTone(freq, 'sine', 0.3, 0.05); // Vol sangat pelan
+                    step++;
+                }
+            }, 500);
+        }
+        function stopBGM() {
+            if (bgmInterval) {
+                clearInterval(bgmInterval);
+                bgmInterval = null;
+            }
+        }
+
+        // Toggle Audio Buttons
+        document.getElementById('btn-bgm').addEventListener('click', (e) => {
+            initAudio();
+            bgmEnabled = !bgmEnabled;
+            e.target.style.opacity = bgmEnabled ? '1' : '0.5';
+            bgmEnabled ? startBGM() : stopBGM();
+            Sound.click();
+        });
+        document.getElementById('btn-sfx').addEventListener('click', (e) => {
+            initAudio();
+            sfxEnabled = !sfxEnabled;
+            e.target.style.opacity = sfxEnabled ? '1' : '0.5';
+            Sound.click();
+        });
+
+        // --- SISTEM NAVIGASI ---
+        function goToPage(pageId) {
+            initAudio();
+            Sound.click();
+            document.querySelectorAll('.page').forEach(p => {
+                p.classList.remove('active');
+            });
+            document.getElementById(pageId).classList.add('active');
+            
+            const btnHome = document.getElementById('btn-home');
+            if (pageId === 'page-menu') {
+                btnHome.classList.add('hidden');
+                // animasi khusus menu
+                const tri1 = document.getElementById('anim-tri-1');
+                if(tri1) tri1.style.transform = '';
+            } else {
+                btnHome.classList.remove('hidden');
+            }
+            
+            if(pageId === 'page-objective'){
+                // Jalankan animasi mini secara berulang
+                setInterval(() => {
+                    const t1 = document.getElementById('anim-tri-1');
+                    const t2 = document.getElementById('anim-tri-2');
+                    if(t1 && t2) {
+                        t1.style.transition = 'transform 2s ease';
+                        t2.style.transition = 'transform 2s ease';
+                        t1.style.transform = 'translateX(20px)';
+                        t2.style.transform = 'translateX(-20px)';
+                        setTimeout(() => {
+                            t1.style.transform = 'translateX(0px)';
+                            t2.style.transform = 'translateX(0px)';
+                        }, 2500);
+                    }
+                }, 5000);
+            }
+        }
+
+        document.getElementById('btn-home').addEventListener('click', () => {
+            // Konfirmasi ringan dengan transisi, tapi di sini langsung kembali agar cepat
+            goToPage('page-menu');
+        });
+
+        function showInfo() {
+            Sound.click();
+            document.getElementById('modal-info').classList.remove('hidden');
+            document.getElementById('modal-info').classList.add('flex');
+        }
+        function closeInfo() {
+            Sound.click();
+            document.getElementById('modal-info').classList.add('hidden');
+            document.getElementById('modal-info').classList.remove('flex');
+        }
+
+        // --- CONFETTI SYSTEM ---
+        function createConfetti() {
+            const colors = ['#f43f5e', '#3b82f6', '#22c55e', '#eab308', '#a855f7'];
+            for (let i = 0; i < 50; i++) {
+                const conf = document.createElement('div');
+                conf.className = 'confetti';
+                conf.style.left = Math.random() * 100 + 'vw';
+                conf.style.top = '-10px';
+                conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                conf.style.transform = `rotate(${Math.random() * 360}deg)`;
+                document.body.appendChild(conf);
+
+                const duration = Math.random() * 2 + 2;
+                conf.animate([
+                    { transform: `translate3d(0,0,0) rotate(0deg)`, opacity: 1 },
+                    { transform: `translate3d(${Math.random()*200 - 100}px, 100vh, 0) rotate(${Math.random()*720}deg)`, opacity: 0 }
+                ], {
+                    duration: duration * 1000,
+                    easing: 'cubic-bezier(.37,0,.63,1)',
+                    fill: 'forwards'
+                });
+
+                setTimeout(() => conf.remove(), duration * 1000);
+            }
+        }
+
+        const shapeColors = ['#f43f5e', '#3b82f6', '#22c55e', '#eab308']; // Merah, Biru, Hijau, Kuning
+
+        const challenges = [
+            {
+                id: 1, type: 'drag', targetShape: 'square',
+                instruction: 'Gabungkan dua segitiga ini menjadi satu SEGIEMPAT (PERSEGI).',
+                successTitle: 'Hebat!', successDesc: 'Dua segitiga siku-siku dapat membentuk satu persegi!'
+            },
+            {
+                id: 2, type: 'drag', targetShape: 'parallelogram',
+                instruction: 'Sekarang, susun dua segitiga ini menjadi JAJARGENJANG (miring).',
+                successTitle: 'Pintar!', successDesc: 'Bentuk ini namanya Jajargenjang!'
+            },
+            {
+                id: 3, type: 'drag', targetShape: 'big_triangle',
+                instruction: 'Ayo buat SEGITIGA BESAR dari dua segitiga kecil ini.',
+                successTitle: 'Berhasil!', successDesc: 'Dua segitiga kecil bisa digabung menjadi segitiga yang lebih besar.'
+            },
+            {
+                id: 4, type: 'mcq',
+                instruction: 'Pilih gambar yang menunjukkan dua segitiga membentuk SEGIEMPAT.',
+                options: [
+                    { img: 'square', correct: true },
+                    { img: 'big_triangle', correct: false }
+                ],
+                successTitle: 'Tepat Sekali!', successDesc: 'Gambar itu adalah dua segitiga yang menjadi segiempat.'
+            },
+            {
+                id: 5, type: 'mcq',
+                instruction: 'Mana gambar yang namanya "SEGITIGA"?',
+                options: [
+                    { img: 'icon_triangle', correct: true },
+                    { img: 'icon_square', correct: false },
+                    { img: 'icon_circle', correct: false }
+                ],
+                successTitle: 'Benar!', successDesc: 'Segitiga memiliki tiga sisi dan tiga sudut.'
+            },
+            {
+                id: 6, type: 'mcq',
+                instruction: 'Mana gambar yang namanya "PERSEGI"?',
+                options: [
+                    { img: 'icon_rect', correct: false },
+                    { img: 'icon_square', correct: true },
+                    { img: 'icon_triangle', correct: false }
+                ],
+                successTitle: 'Bagus!', successDesc: 'Persegi memiliki empat sisi yang sama panjang.'
+            },
+            {
+                id: 7, type: 'mcq',
+                instruction: 'Manakah yang disebut "PERSEGI PANJANG"?',
+                options: [
+                    { img: 'icon_rect', correct: true },
+                    { img: 'icon_square', correct: false }
+                ],
+                successTitle: 'Betul!', successDesc: 'Persegi panjang memiliki sisi berhadapan yang sama panjang.'
+            },
+            {
+                id: 8, type: 'mcq',
+                instruction: 'Perhatikan susunan ini. Susunan mana yang bentuk pinggirnya memiliki 4 sisi lurus (Segiempat)?',
+                options: [
+                    { img: 'square', correct: true },
+                    { img: 'big_triangle', correct: false }
+                ],
+                successTitle: 'Hebat!', successDesc: 'Kamu bisa membedakan mana yang memiliki empat sisi luar.'
+            },
+            {
+                id: 9, type: 'mcq',
+                instruction: 'Bentuk apa yang terjadi jika 2 segitiga disatukan pada sisi terpanjangnya?',
+                options: [
+                    { text: 'Persegi (Segiempat)', correct: true },
+                    { text: 'Segitiga Besar', correct: false }
+                ],
+                successTitle: 'Cerdas!', successDesc: 'Menempelkan sisi miringnya akan membentuk persegi.'
+            },
+            {
+                id: 10, type: 'free',
+                instruction: 'TANTANGAN BEBAS! Susun 2 segitiga ini sesukamu lalu tunjukkan ke gurumu!',
+                successTitle: 'Petualangan Selesai!', successDesc: 'Kamu sangat kreatif!'
+            }
+        ];
+
+        let currentChallengeIdx = 0;
+        let score = 0;
+
+        // --- SISTEM DRAG & DROP KHUSUS CANVAS DOM ---
+        let shapes = [];
+        let selectedShape = null;
+        let isDragging = false;
+        let startPos = {x: 0, y: 0};
+        
+        const DRAG_SIZE = 120; // Ukuran dasar segitiga
+        
+        // Bentuk Segitiga SVG String (Siku-siku sama kaki)
+        const svgTriangle = (color) => `<svg viewBox="0 0 100 100" width="${DRAG_SIZE}" height="${DRAG_SIZE}" style="display:block;"><polygon points="0,0 0,100 100,100" fill="${color}" stroke="white" stroke-width="2" stroke-linejoin="round"/></svg>`;
+
+        function renderDragChallenge(challenge) {
+            const container = document.getElementById('shapes-container');
+            const targetContainer = document.getElementById('target-container');
+            container.innerHTML = '';
+            targetContainer.innerHTML = '';
+            
+            // Konfigurasi Target
+            let targetSVG = '';
+            let tRot1=0, tRot2=0;
+            let tx1=0, ty1=0, tx2=0, ty2=0;
+
+            const areaW = document.getElementById('drag-area').clientWidth;
+            const areaH = document.getElementById('drag-area').clientHeight;
+            const cx = areaW / 2;
+            const cy = areaH / 2;
+
+            if (challenge.targetShape === 'square') {
+                // Persegi (180 deg beda)
+                tRot1 = 0; tRot2 = 180;
+                tx1 = cx - DRAG_SIZE/2; ty1 = cy - DRAG_SIZE/2;
+                tx2 = cx; ty2 = cy - DRAG_SIZE/2;
+                targetSVG = `<div class="absolute border-4 border-dashed border-gray-400 opacity-50" style="width:${DRAG_SIZE}px; height:${DRAG_SIZE}px; left:${tx1}px; top:${ty1}px;"></div>`;
+            } else if (challenge.targetShape === 'parallelogram') {
+                tRot1 = 0; tRot2 = 0;
+                tx1 = cx - DRAG_SIZE; ty1 = cy - DRAG_SIZE/2;
+                tx2 = cx; ty2 = cy - DRAG_SIZE/2;
+                targetSVG = `
+                    <svg class="absolute opacity-30" style="left:${cx-DRAG_SIZE}px; top:${ty1}px;" width="${DRAG_SIZE*2}" height="${DRAG_SIZE}">
+                        <polygon points="0,0 0,100 ${DRAG_SIZE},100 ${DRAG_SIZE*2},100 ${DRAG_SIZE*2},0 ${DRAG_SIZE},0" fill="none" stroke="gray" stroke-width="4" stroke-dasharray="10,5"/>
+                        <polygon points="0,0 0,100 ${DRAG_SIZE*2},100 ${DRAG_SIZE},0" fill="none" stroke="black" stroke-width="4" stroke-dasharray="10,5"/>
+                    </svg>`;
+            } else if (challenge.targetShape === 'big_triangle') {
+                tRot1 = 0; tRot2 = -90; // atau 270
+                tx1 = cx - DRAG_SIZE/2; ty1 = cy - DRAG_SIZE/2;
+                tx2 = cx - DRAG_SIZE/2; ty2 = cy - DRAG_SIZE/2 - DRAG_SIZE; // Ini butuh penyesuaian visual, mari gunakan pendekatan posisi bebas
+                targetSVG = `<div class="absolute w-32 h-32 border-4 border-dashed rounded-full border-blue-300 opacity-50" style="left:${cx-64}px; top:${cy-64}px;"></div>`; // Zona bebas
+            }
+
+            if(challenge.type !== 'free' && targetSVG) {
+                targetContainer.innerHTML = targetSVG;
+            }
+
+            // Buat 2 Segitiga (Acak posisi sedikit di bawah)
+            shapes = [
+                { id: 'shape1', el: null, x: cx - DRAG_SIZE - 20, y: cy + 20, rot: 0, color: shapeColors[0] },
+                { id: 'shape2', el: null, x: cx + 20, y: cy + 20, rot: Math.random() > 0.5 ? 90 : 180, color: shapeColors[1] }
+            ];
+
+            shapes.forEach((s, idx) => {
+                const div = document.createElement('div');
+                div.id = s.id;
+                div.className = 'draggable absolute origin-center flex items-center justify-center';
+                div.style.width = DRAG_SIZE + 'px';
+                div.style.height = DRAG_SIZE + 'px';
+                div.innerHTML = svgTriangle(s.color);
+                
+                div.onpointerdown = (e) => startDrag(e, idx);
+                container.appendChild(div);
+                s.el = div;
+                updateShapePos(idx);
+            });
+            selectedShape = 0;
+            highlightSelected();
+        }
+
+        function startDrag(e, idx) {
+            e.preventDefault();
+            isDragging = true;
+            selectedShape = idx;
+            highlightSelected();
+            
+            const shape = shapes[idx];
+            // Bawa ke depan
+            shape.el.style.zIndex = 10;
+            shapes[1-idx].el.style.zIndex = 5;
+
+            // Hitung offset klik ke posisi elemen
+            const rect = shape.el.getBoundingClientRect();
+            const parentRect = document.getElementById('drag-area').getBoundingClientRect();
+            
+            startPos = {
+                offsetX: e.clientX - rect.left,
+                offsetY: e.clientY - rect.top,
+                parentX: parentRect.left,
+                parentY: parentRect.top
+            };
+
+            document.addEventListener('pointermove', onDrag);
+            document.addEventListener('pointerup', endDrag);
+            Sound.drag();
+        }
+
+        function onDrag(e) {
+            if (!isDragging) return;
+            e.preventDefault();
+            
+            const shape = shapes[selectedShape];
+            const area = document.getElementById('drag-area');
+            const areaW = area.clientWidth;
+            const areaH = area.clientHeight;
+
+            // Posisi baru berdasarkan koordinat pointer dikurangi offset dan posisi parent
+            let newX = e.clientX - startPos.parentX - startPos.offsetX;
+            let newY = e.clientY - startPos.parentY - startPos.offsetY;
+
+            // Batasi agar tidak keluar kotak (rough bound)
+            newX = Math.max(0, Math.min(newX, areaW - DRAG_SIZE));
+            newY = Math.max(0, Math.min(newY, areaH - DRAG_SIZE));
+
+            shape.x = newX;
+            shape.y = newY;
+            updateShapePos(selectedShape);
+            
+            // Efek snapping visual ringan (magnetik) saat berdekatan
+            checkProximitySnap();
+        }
+
+        function endDrag(e) {
+            isDragging = false;
+            document.removeEventListener('pointermove', onDrag);
+            document.removeEventListener('pointerup', endDrag);
+            Sound.pop();
+        }
+
+        function updateShapePos(idx) {
+            const s = shapes[idx];
+            s.el.style.transform = `translate(${s.x}px, ${s.y}px) rotate(${s.rot}deg)`;
+        }
+
+        function rotateSelected() {
+            if (selectedShape === null) return;
+            Sound.click();
+            shapes[selectedShape].rot = (shapes[selectedShape].rot + 90) % 360;
+            updateShapePos(selectedShape);
+            checkProximitySnap();
+        }
+
+        function resetShapes() {
+            Sound.click();
+            const areaW = document.getElementById('drag-area').clientWidth;
+            const cy = document.getElementById('drag-area').clientHeight / 2;
+            shapes[0].x = areaW/2 - DRAG_SIZE - 20; shapes[0].y = cy + 20; shapes[0].rot = 0;
+            shapes[1].x = areaW/2 + 20; shapes[1].y = cy + 20; shapes[1].rot = 90;
+            updateShapePos(0);
+            updateShapePos(1);
+        }
+
+        function highlightSelected() {
+            shapes.forEach((s, i) => {
+                s.el.style.filter = i === selectedShape ? 'drop-shadow(0 0 10px rgba(251, 191, 36, 0.8)) brightness(1.1)' : 'drop-shadow(0 4px 6px rgba(0,0,0,0.3))';
+            });
+        }
+
+        function checkProximitySnap() {
+            // Logika deteksi ringan apakah kedua bentuk saling menempel
+            const s1 = shapes[0];
+            const s2 = shapes[1];
+            const dx = Math.abs(s1.x - s2.x);
+            const dy = Math.abs(s1.y - s2.y);
+            
+            // Jika sangat dekat, kita anggap mereka mencoba menyatukan
+            if (dx < 60 && dy < 60) {
+                // Tampilkan petunjuk putar jika rotasi belum cocok untuk persegi (contoh)
+                const challenge = challenges[currentChallengeIdx];
+                if(challenge.targetShape === 'square') {
+                    const rotDiff = Math.abs(s1.rot - s2.rot);
+                    if (rotDiff !== 180) {
+                        const hint = document.getElementById('visual-feedback');
+                        hint.classList.remove('opacity-0');
+                        setTimeout(() => hint.classList.add('opacity-0'), 3000);
+                    }
+                }
+            }
+        }
+
+        function checkDragAnswer() {
+            Sound.click();
+            const challenge = challenges[currentChallengeIdx];
+            
+            if (challenge.type === 'free') {
+                showModal(challenge.successTitle, challenge.successDesc, true);
+                return;
+            }
+
+            const s1 = shapes[0];
+            const s2 = shapes[1];
+            
+            // Validasi longgar (untuk anak SD, kita toleransi posisi X/Y sedikit)
+            const dx = s1.x - s2.x;
+            const dy = s1.y - s2.y;
+            const rotDiff = Math.abs((s1.rot % 360) - (s2.rot % 360));
+            const isNear = Math.abs(dx) < (DRAG_SIZE * 1.5) && Math.abs(dy) < (DRAG_SIZE * 1.5);
+            let isCorrect = false;
+
+            if (challenge.targetShape === 'square') {
+                // Syarat: Rotasi berlawanan (beda 180 atau 180/-180) dan berdekatan menyentuh sisi miring
+                if (isNear && (rotDiff === 180 || rotDiff === -180)) {
+                    // Cek lebih spesifik posisi relatif berdasarkan rotasi
+                    // Agar sederhana, asal beda 180 derajat dan dekat (radius snap).
+                    // Secara teknis sisi hipotenusa harus berhadapan.
+                    isCorrect = true; 
+                }
+            } else if (challenge.targetShape === 'parallelogram') {
+                // Syarat: Rotasi sama (beda 0) atau beda 180 (bentuk layang-layang, bukan jajargenjang standar dari segitiga siku)
+                // Dari 2 segitiga siku-siku, jajargenjang dibuat jika rotasi beda 180 tapi disambung di sisi tegak/datar, 
+                // atau rotasi sama disambung di sisi miring.
+                if (isNear && (rotDiff === 0 || rotDiff === 180)) {
+                    isCorrect = true;
+                }
+            } else if (challenge.targetShape === 'big_triangle') {
+                 // Syarat umum, asal mereka saling menempel dalam susunan tertentu.
+                 if (isNear && (rotDiff === 90 || rotDiff === 270)) {
+                     isCorrect = true;
+                 }
+            }
+
+            if (isCorrect) {
+                // Snap visualisasi (Opsional: memaksakan posisi agar terlihat rapi)
+                Sound.snap();
+                setTimeout(() => showModal(challenge.successTitle, challenge.successDesc, true), 500);
+            } else {
+                Sound.wrong();
+                // Animasi goyang
+                const area = document.getElementById('drag-area');
+                area.classList.add('animate-pulse');
+                setTimeout(() => area.classList.remove('animate-pulse'), 500);
+                // Petunjuk lembut
+                const hint = document.getElementById('visual-feedback');
+                hint.textContent = "Coba putar atau dekatkan lagi, ya! 🔄";
+                hint.classList.remove('opacity-0');
+                setTimeout(() => hint.classList.add('opacity-0'), 3000);
+            }
+        }
+
+        // Komponen Gambar SVG untuk MCQ
+        const MCQImages = {
+            'square': `<svg viewBox="0 0 100 100" class="w-24 h-24 mx-auto"><polygon points="10,10 10,90 90,90" fill="#f43f5e"/><polygon points="90,90 90,10 10,10" fill="#3b82f6"/><line x1="10" y1="90" x2="90" y2="10" stroke="white" stroke-width="2"/></svg>`,
+            'big_triangle': `<svg viewBox="0 0 100 100" class="w-24 h-24 mx-auto"><polygon points="10,90 50,10 50,90" fill="#22c55e"/><polygon points="50,10 90,90 50,90" fill="#eab308"/><line x1="50" y1="10" x2="50" y2="90" stroke="white" stroke-width="2"/></svg>`,
+            'icon_triangle': `<svg viewBox="0 0 100 100" class="w-24 h-24 mx-auto drop-shadow-md"><polygon points="50,10 90,90 10,90" fill="#a855f7"/></svg>`,
+            'icon_square': `<svg viewBox="0 0 100 100" class="w-24 h-24 mx-auto drop-shadow-md"><rect x="10" y="10" width="80" height="80" fill="#ec4899"/></svg>`,
+            'icon_rect': `<svg viewBox="0 0 100 100" class="w-24 h-24 mx-auto drop-shadow-md"><rect x="10" y="30" width="80" height="40" fill="#14b8a6"/></svg>`,
+            'icon_circle': `<svg viewBox="0 0 100 100" class="w-24 h-24 mx-auto drop-shadow-md"><circle cx="50" cy="50" r="40" fill="#f97316"/></svg>`
+        };
+
+        function renderMCQChallenge(challenge) {
+            const qContainer = document.getElementById('mcq-question');
+            const optContainer = document.getElementById('mcq-options');
+            qContainer.textContent = challenge.instruction;
+            optContainer.innerHTML = '';
+
+            challenge.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'bg-white p-6 rounded-2xl border-4 border-gray-200 hover:border-blue-400 hover:bg-blue-50 shadow transition-all btn-custom flex flex-col items-center justify-center gap-4';
+                
+                if (opt.img) {
+                    btn.innerHTML = MCQImages[opt.img];
+                }
+                if (opt.text) {
+                    btn.innerHTML += `<span class="text-xl font-bold text-gray-700">${opt.text}</span>`;
+                }
+
+                btn.onclick = () => {
+                    if (opt.correct) {
+                        Sound.correct();
+                        btn.classList.replace('border-gray-200', 'border-green-500');
+                        btn.classList.add('bg-green-100');
+                        setTimeout(() => showModal(challenge.successTitle, challenge.successDesc, true), 600);
+                    } else {
+                        Sound.wrong();
+                        btn.classList.replace('border-gray-200', 'border-red-400');
+                        btn.classList.add('animate-pulse');
+                        setTimeout(() => btn.classList.replace('border-red-400', 'border-gray-200'), 1000);
+                    }
+                };
+                optContainer.appendChild(btn);
+            });
+        }
+
+        function initGame() {
+            currentChallengeIdx = 0;
+            score = 0;
+            document.getElementById('score-display').textContent = score;
+            loadChallenge();
+        }
+
+        function loadChallenge() {
+            const challenge = challenges[currentChallengeIdx];
+            document.getElementById('challenge-number').textContent = challenge.id;
+            document.getElementById('challenge-instruction').textContent = challenge.instruction;
+
+            const dragArea = document.getElementById('drag-area');
+            const toolPanel = document.getElementById('tool-panel');
+            const mcqArea = document.getElementById('mcq-area');
+
+            if (challenge.type === 'drag' || challenge.type === 'free') {
+                dragArea.classList.remove('hidden');
+                toolPanel.classList.remove('hidden');
+                mcqArea.classList.add('hidden');
+                renderDragChallenge(challenge);
+                
+                if(challenge.type === 'free') {
+                    document.getElementById('btn-check').textContent = "SELESAI 🏁";
+                } else {
+                    document.getElementById('btn-check').textContent = "PERIKSA ✅";
+                }
+            } else {
+                dragArea.classList.add('hidden');
+                toolPanel.classList.add('hidden');
+                mcqArea.classList.remove('hidden');
+                renderMCQChallenge(challenge);
+            }
+        }
+
+        function showModal(title, desc, isSuccess) {
+            const modal = document.getElementById('modal-feedback');
+            const content = document.getElementById('modal-content');
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-desc').textContent = desc;
+            
+            if (isSuccess) {
+                document.getElementById('modal-icon').textContent = "🌟";
+                content.className = "bg-white rounded-3xl p-8 max-w-md w-full text-center shadow-2xl transform transition-transform scale-100 border-4 border-green-400";
+                if(challenges[currentChallengeIdx].type !== 'free') {
+                    score += 1;
+                    document.getElementById('score-display').textContent = score;
+                }
+                createConfetti();
+                Sound.win();
+            }
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => {
+                content.classList.replace('scale-90', 'scale-100');
+            }, 10);
+        }
+
+        function closeModalAndNext() {
+            Sound.click();
+            const modal = document.getElementById('modal-feedback');
+            const content = document.getElementById('modal-content');
+            content.classList.replace('scale-100', 'scale-90');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                
+                currentChallengeIdx++;
+                if (currentChallengeIdx < challenges.length) {
+                    loadChallenge();
+                } else {
+                    showResult();
+                }
+            }, 200);
+        }
+
+        function showResult() {
+            goToPage('page-result');
+            document.getElementById('final-score').textContent = `${score} / 9`; // 9 karena yg ke 10 free play
+            
+            const starContainer = document.getElementById('star-container');
+            starContainer.innerHTML = '';
+            
+            let stars = 1;
+            let msg = "Awal yang bagus! Terus berlatih ya.";
+            if (score >= 8) {
+                stars = 3;
+                msg = "Sempurna! Kamu adalah Master Bangun Datar!";
+            } else if (score >= 5) {
+                stars = 2;
+                msg = "Kerja bagus! Kamu berhasil menyelesaikan sebagian besar tantangan.";
+            }
+
+            for (let i = 0; i < 3; i++) {
+                const star = document.createElement('div');
+                star.className = `text-5xl md:text-7xl transform transition-transform duration-1000 ${i < stars ? 'text-yellow-400 scale-110 drop-shadow-lg' : 'text-gray-300'}`;
+                star.textContent = '⭐';
+                // Animasi muncul berurutan
+                star.style.opacity = 0;
+                starContainer.appendChild(star);
+                
+                setTimeout(() => {
+                    if (i < stars) Sound.correct();
+                    star.style.opacity = 1;
+                    star.classList.add('pop-in');
+                }, i * 400 + 500);
+            }
+
+            document.getElementById('final-message').textContent = msg;
+            
+            setTimeout(() => {
+                if(stars >= 2) createConfetti();
+                Sound.win();
+            }, 1500);
+        }
+
+        function resetGame() {
+            score = 0;
+            currentChallengeIdx = 0;
+        }
+
+        // Mencegah scrolling default saat menyentuh SVG atau area game (penting untuk mobile)
+        document.addEventListener('touchmove', function(e) {
+            if (e.target.closest('#drag-area')) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+    </script>
+</body>
+</html>
